@@ -376,7 +376,7 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
             _componentStateByComponent.TryGetValue(receiverComponent, out receiverComponentState);
         }
 
-        Log.HandlingEvent(Logger, eventHandlerId, eventArgs, handleEvent, receiverComponentState?.ComponentId);
+        Log.HandlingEvent(Logger, eventHandlerId, eventArgs, receiverComponentState?.ComponentId);
 
         if (fieldInfo != null)
         {
@@ -767,7 +767,7 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
         // unless we absolutely have to.
         if (task.IsCompleted)
         {
-            Log.AfterRenderCompleteComponent(Logger, componentState);
+            Log.AfterRenderCompleteComponent(Logger, state);
 
             if (task.Status == TaskStatus.RanToCompletion || task.Status == TaskStatus.Canceled)
             {
@@ -793,10 +793,10 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
 
         bool debugLog = Logger.IsEnabled(LogLevel.Debug);
 
-        if(debugLog)
+        if (debugLog)
             Log.RenderingComponent(Logger, componentState);
         componentState.RenderIntoBatch(_batchBuilder, renderQueueEntry.RenderFragment, out var renderFragmentException);
-        if(debugLog)
+        if (debugLog)
             Log.RenderedComponent(Logger, componentState);
 
         if (renderFragmentException != null)

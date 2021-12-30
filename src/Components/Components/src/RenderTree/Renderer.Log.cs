@@ -34,49 +34,9 @@ public abstract partial class Renderer
         [LoggerMessage(3, LogLevel.Debug, "Rendering component {ComponentId} of type {ComponentType}", EventName = "RenderingComponent", SkipEnabledCheck = true)]
         private static partial void RenderingComponent(ILogger logger, int componentId, Type componentType);
 
-        [LoggerMessage(6, LogLevel.Debug, "Rendered component {ComponentId} of type {ComponentType}", EventName = "RenderingComponent", SkipEnabledCheck = true)]
-        private static partial void RenderedComponent(ILogger logger, int componentId, Type componentType);
-
-        [LoggerMessage(9, LogLevel.Debug, "AfterRender completed for component {ComponentId} of type {ComponentType}", EventName = "RenderedComponent", SkipEnabledCheck = true)]
-        private static partial void AfterRenderCompleteComponent(ILogger logger, int componentId, Type componentType);
-
-        [LoggerMessage(7, LogLevel.Debug, "Initializing and setting parameters for component {ComponentId} of type {ComponentType}", EventName = "RenderedComponent", SkipEnabledCheck = true)]
-        private static partial void InitializingAndSettingParametersComponent(ILogger logger, int componentId, Type componentType);
-
-        [LoggerMessage(8, LogLevel.Debug, "Setting parameters for component {ComponentId} of type {ComponentType}", EventName = "RenderedComponent", SkipEnabledCheck = true)]
-        private static partial void SettingParametersComponent(ILogger logger, int componentId, Type componentType);
-
         public static void RenderingComponent(ILogger logger, ComponentState componentState)
         {
             RenderingComponent(logger, componentState.ComponentId, componentState.Component.GetType());
-        }
-
-        public static void BeforeInitializeAndSetParametersComponent(ILogger logger, ComponentState componentState)
-        {
-            BeforeInitializeAndSetParametersComponent(logger, componentState.ComponentId, componentState.Component.GetType());
-        }
-
-        public static void SettingParametersComponent(ILogger logger, ComponentState componentState)
-        {
-            SettingParametersComponent(logger, componentState.ComponentId, componentState.Component.GetType());
-        }
-
-        public static void InitializingAndSettingParametersComponent(ILogger logger, ComponentState componentState)
-        {
-            InitializingAndSettingParametersComponent(logger, componentState.ComponentId, componentState.Component.GetType());
-        }
-
-        public static void RenderedComponent(ILogger logger, ComponentState componentState)
-        {
-            RenderedComponent(logger, componentState.ComponentId, componentState.Component.GetType());
-        }
-
-        public static void AfterRenderCompleteComponent(ILogger logger, ComponentState componentState)
-        {
-            if (logger.IsEnabled(LogLevel.Debug)) // This is almost always false, so skip the evaluations
-            {
-                AfterRenderCompleteComponent(logger, componentState.ComponentId, componentState.Component.GetType());
-            }
         }
 
         [LoggerMessage(4, LogLevel.Debug, "Disposing component {ComponentId} of type {ComponentType}", EventName = "DisposingComponent", SkipEnabledCheck = true)]
@@ -91,13 +51,48 @@ public abstract partial class Renderer
         }
 
         [LoggerMessage(5, LogLevel.Debug, "Handling event {EventId} of type '{EventType}' for component '{ComponentId}'", EventName = "HandlingEvent", SkipEnabledCheck = true)]
-        public static partial void HandlingEvent(ILogger<Renderer> logger, ulong eventId, string eventType, string componentId);
+        private static partial void HandlingEvent(ILogger<Renderer> logger, ulong eventId, string eventType, string componentId);
 
-        public static void HandlingEvent(ILogger<Renderer> logger, ulong eventHandlerId, EventArgs? eventArgs, ulong? componentId)
+        public static void HandlingEvent(ILogger<Renderer> logger, ulong eventHandlerId, EventArgs? eventArgs, int? componentId)
         {
             if (logger.IsEnabled(LogLevel.Debug)) // This is almost always false, so skip the evaluations
             {
-                HandlingEventForComponent(logger, eventHandlerId, eventArgs?.GetType().Name ?? "null", componentId?.ToString() ?? "null");
+                HandlingEvent(logger, eventHandlerId, eventArgs?.GetType().Name ?? "null", componentId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null");
+            }
+        }
+
+        [LoggerMessage(6, LogLevel.Debug, "Rendered component {ComponentId} of type {ComponentType}", EventName = "RenderingComponent", SkipEnabledCheck = true)]
+        private static partial void RenderedComponent(ILogger logger, int componentId, Type componentType);
+
+        public static void RenderedComponent(ILogger logger, ComponentState componentState)
+        {
+            RenderedComponent(logger, componentState.ComponentId, componentState.Component.GetType());
+        }
+
+        [LoggerMessage(7, LogLevel.Debug, "Initializing and setting parameters for component {ComponentId} of type {ComponentType}", EventName = "RenderedComponent", SkipEnabledCheck = true)]
+        private static partial void InitializingAndSettingParametersComponent(ILogger logger, int componentId, Type componentType);
+
+        public static void InitializingAndSettingParametersComponent(ILogger logger, ComponentState componentState)
+        {
+            InitializingAndSettingParametersComponent(logger, componentState.ComponentId, componentState.Component.GetType());
+        }
+
+        [LoggerMessage(8, LogLevel.Debug, "Setting parameters for component {ComponentId} of type {ComponentType}", EventName = "RenderedComponent", SkipEnabledCheck = true)]
+        private static partial void SettingParametersComponent(ILogger logger, int componentId, Type componentType);
+
+        public static void SettingParametersComponent(ILogger logger, ComponentState componentState)
+        {
+            SettingParametersComponent(logger, componentState.ComponentId, componentState.Component.GetType());
+        }
+
+        [LoggerMessage(9, LogLevel.Debug, "AfterRender completed for component {ComponentId} of type {ComponentType}", EventName = "RenderedComponent", SkipEnabledCheck = true)]
+        private static partial void AfterRenderCompleteComponent(ILogger logger, int componentId, Type componentType);
+
+        public static void AfterRenderCompleteComponent(ILogger logger, ComponentState componentState)
+        {
+            if (logger.IsEnabled(LogLevel.Debug)) // This is almost always false, so skip the evaluations
+            {
+                AfterRenderCompleteComponent(logger, componentState.ComponentId, componentState.Component.GetType());
             }
         }
     }

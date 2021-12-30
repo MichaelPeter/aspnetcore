@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.RenderTree;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Components.Rendering;
 
@@ -201,9 +202,9 @@ internal class ComponentState : IDisposable
         Task setParametersAsyncTask;
         try
         {
-            if(logger.IsEnabled(LogLevel.Debug))
+            if (logger.IsEnabled(LogLevel.Debug))
             {
-                if(!_componentWasInitialized)
+                if (!_componentWasInitialized)
                 {
                     Renderer.Log.InitializingAndSettingParametersComponent(logger, this);
                 }
@@ -217,7 +218,7 @@ internal class ComponentState : IDisposable
 
             // If the method call succeded and no exception was thrown it can be assumed the component is initialized.
             // this assumption could only be removed if the Initialized Property of ComponentBase made public and added to IComponent
-            _componentWasInitialized = true; 
+            _componentWasInitialized = true;
         }
         catch (Exception ex)
         {

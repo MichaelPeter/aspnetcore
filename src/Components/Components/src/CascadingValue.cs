@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Rendering;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Components;
 
@@ -17,7 +18,7 @@ public class CascadingValue<TValue> : ICascadingValueComponent, IComponent
     private HashSet<ComponentState>? _subscribers; // Lazily instantiated
     private bool _hasSetParametersPreviously;
 
-    [Inject] private ILogger<CascadingValue<TValue>> _logger;
+    [Inject] private ILogger<CascadingValue<TValue>>? Logger { get; set; }
 
     /// <summary>
     /// The content to which the value should be provided.
@@ -174,7 +175,7 @@ public class CascadingValue<TValue> : ICascadingValueComponent, IComponent
     {
         foreach (var subscriber in _subscribers!)
         {
-            subscriber.NotifyCascadingValueChanged(lifetime, _logger);
+            subscriber.NotifyCascadingValueChanged(lifetime, Logger!);
         }
     }
 
