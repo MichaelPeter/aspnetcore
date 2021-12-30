@@ -544,7 +544,7 @@ internal static class RenderTreeDiffBuilder
         var newParameters = new ParameterView(newParametersLifetime, newTree, newComponentIndex);
         if (!newParameters.DefinitelyEquals(oldParameters) || (HotReloadManager.Default.MetadataUpdateSupported && diffContext.Renderer.IsRenderingOnMetadataUpdate))
         {
-            componentState.SetDirectParameters(newParameters);
+            componentState.SetDirectParameters(newParameters, renderer.Logger);
         }
     }
 
@@ -916,7 +916,7 @@ internal static class RenderTreeDiffBuilder
         // Set initial parameters
         var initialParametersLifetime = new ParameterViewLifetime(diffContext.BatchBuilder);
         var initialParameters = new ParameterView(initialParametersLifetime, frames, frameIndex);
-        childComponentState.SetDirectParameters(initialParameters);
+        childComponentState.SetDirectParameters(initialParameters, _renderer.Logger);
     }
 
     private static void InitializeNewAttributeFrame(ref DiffContext diffContext, ref RenderTreeFrame newFrame)

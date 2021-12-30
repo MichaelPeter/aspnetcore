@@ -29,7 +29,7 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
     private readonly RenderBatchBuilder _batchBuilder = new RenderBatchBuilder();
     private readonly Dictionary<ulong, EventCallback> _eventBindings = new Dictionary<ulong, EventCallback>();
     private readonly Dictionary<ulong, ulong> _eventHandlerIdReplacements = new Dictionary<ulong, ulong>();
-    private readonly ILogger<Renderer> _logger;
+    internal readonly ILogger<Renderer> Logger;
     private readonly ComponentFactory _componentFactory;
     private Dictionary<int, ParameterView>? _rootComponentsLatestParameters;
     private Task? _ongoingQuiescenceTask;
@@ -93,7 +93,7 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
         }
 
         _serviceProvider = serviceProvider;
-        _logger = loggerFactory.CreateLogger<Renderer>();
+        Logger = loggerFactory.CreateLogger<Renderer>();
         _componentFactory = new ComponentFactory(componentActivator);
     }
 
@@ -147,7 +147,7 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
                 foreach (var (componentId, parameters) in _rootComponentsLatestParameters)
                 {
                     var componentState = GetRequiredComponentState(componentId);
-                    componentState.SetDirectParameters(parameters);
+                    componentState.SetDirectParameters(parameters, Logger);
                 }
             }
             finally
@@ -247,7 +247,7 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
             _rootComponentsLatestParameters[componentId] = initialParameters.Clone();
         }
 
-        componentState.SetDirectParameters(initialParameters);
+        componentState.SetDirectParameters(initialParameters, Logger);
 
         await WaitForQuiescence();
         Debug.Assert(_pendingTasks == null);
@@ -336,7 +336,7 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
         var componentId = _nextComponentId++;
         var parentComponentState = GetOptionalComponentState(parentComponentId);
         var componentState = new ComponentState(this, componentId, component, parentComponentState);
-        Log.InitializingComponent(_logger, componentState, parentComponentState);
+        Log.InitializingComponent(Logger, componentState, parentComponentState);
         _componentStateById.Add(componentId, componentState);
         _componentStateByComponent.Add(component, componentState);
         component.Attach(new RenderHandle(this, componentId));
@@ -365,7 +365,6 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
         Dispatcher.AssertAccess();
 
         var callback = GetRequiredEventCallback(eventHandlerId);
-        Log.HandlingEvent(_logger, eventHandlerId, eventArgs);
 
         // Try to match it up with a receiver so that, if the event handler later throws, we can route the error to the
         // correct error boundary (even if the receiving component got disposed in the meantime).
@@ -376,6 +375,8 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
             // We can only route errors to error boundaries if the receiver is known and not yet disposed at this stage
             _componentStateByComponent.TryGetValue(receiverComponent, out receiverComponentState);
         }
+
+        Log.HandlingEvent(Logger, eventHandlerId, eventArgs, handleEvent, receiverComponentState?.ComponentId);
 
         if (fieldInfo != null)
         {
@@ -766,6 +767,8 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
         // unless we absolutely have to.
         if (task.IsCompleted)
         {
+            Log.AfterRenderCompleteComponent(Logger, componentState);
+
             if (task.Status == TaskStatus.RanToCompletion || task.Status == TaskStatus.Canceled)
             {
                 // Nothing to do here.
@@ -787,8 +790,15 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
     private void RenderInExistingBatch(RenderQueueEntry renderQueueEntry)
     {
         var componentState = renderQueueEntry.ComponentState;
-        Log.RenderingComponent(_logger, componentState);
+
+        bool debugLog = Logger.IsEnabled(LogLevel.Debug);
+
+        if(debugLog)
+            Log.RenderingComponent(Logger, componentState);
         componentState.RenderIntoBatch(_batchBuilder, renderQueueEntry.RenderFragment, out var renderFragmentException);
+        if(debugLog)
+            Log.RenderedComponent(Logger, componentState);
+
         if (renderFragmentException != null)
         {
             // If this returns, the error was handled by an error boundary. Otherwise it throws.
@@ -806,7 +816,7 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
         {
             var disposeComponentId = _batchBuilder.ComponentDisposalQueue.Dequeue();
             var disposeComponentState = GetRequiredComponentState(disposeComponentId);
-            Log.DisposingComponent(_logger, disposeComponentState);
+            Log.DisposingComponent(Logger, disposeComponentState);
             if (!(disposeComponentState.Component is IAsyncDisposable))
             {
                 if (!disposeComponentState.TryDisposeInBatch(_batchBuilder, out var exception))
@@ -1006,7 +1016,7 @@ public abstract partial class Renderer : IDisposable, IAsyncDisposable
         List<Task> asyncDisposables = null;
         foreach (var componentState in _componentStateById.Values)
         {
-            Log.DisposingComponent(_logger, componentState);
+            Log.DisposingComponent(Logger, componentState);
 
             // Components shouldn't need to implement IAsyncDisposable and IDisposable simultaneously,
             // but in case they do, we prefer the async overload since we understand the sync overload

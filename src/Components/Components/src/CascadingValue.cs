@@ -17,6 +17,8 @@ public class CascadingValue<TValue> : ICascadingValueComponent, IComponent
     private HashSet<ComponentState>? _subscribers; // Lazily instantiated
     private bool _hasSetParametersPreviously;
 
+    [Inject] private ILogger<CascadingValue<TValue>> _logger;
+
     /// <summary>
     /// The content to which the value should be provided.
     /// </summary>
@@ -172,7 +174,7 @@ public class CascadingValue<TValue> : ICascadingValueComponent, IComponent
     {
         foreach (var subscriber in _subscribers!)
         {
-            subscriber.NotifyCascadingValueChanged(lifetime);
+            subscriber.NotifyCascadingValueChanged(lifetime, _logger);
         }
     }
 

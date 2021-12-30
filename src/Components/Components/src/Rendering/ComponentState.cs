@@ -23,6 +23,7 @@ internal class ComponentState : IDisposable
     private RenderTreeBuilder _nextRenderTree;
     private ArrayBuilder<RenderTreeFrame>? _latestDirectParametersSnapshot; // Lazily instantiated
     private bool _componentWasDisposed;
+    private bool _componentWasInitialized;
 
     /// <summary>
     /// Constructs an instance of <see cref="ComponentState"/>.
@@ -153,7 +154,7 @@ internal class ComponentState : IDisposable
         return Task.CompletedTask;
     }
 
-    public void SetDirectParameters(ParameterView parameters)
+    public void SetDirectParameters(ParameterView parameters, ILogger logger)
     {
         // Note: We should be careful to ensure that the framework never calls
         // IComponent.SetParametersAsync directly elsewhere. We should only call it
@@ -179,28 +180,44 @@ internal class ComponentState : IDisposable
             parameters = parameters.WithCascadingParameters(_cascadingParameters);
         }
 
-        SupplyCombinedParameters(parameters);
+        SupplyCombinedParameters(parameters, logger);
     }
 
-    public void NotifyCascadingValueChanged(in ParameterViewLifetime lifetime)
+    public void NotifyCascadingValueChanged(in ParameterViewLifetime lifetime, ILogger logger)
     {
         var directParams = _latestDirectParametersSnapshot != null
             ? new ParameterView(lifetime, _latestDirectParametersSnapshot.Buffer, 0)
             : ParameterView.Empty;
         var allParams = directParams.WithCascadingParameters(_cascadingParameters!);
-        SupplyCombinedParameters(allParams);
+        SupplyCombinedParameters(allParams, logger);
     }
 
     // This should not be called from anywhere except SetDirectParameters or NotifyCascadingValueChanged.
     // Those two methods know how to correctly combine both cascading and non-cascading parameters to supply
     // a consistent set to the recipient.
-    private void SupplyCombinedParameters(ParameterView directAndCascadingParameters)
+    private void SupplyCombinedParameters(ParameterView directAndCascadingParameters, ILogger logger)
     {
         // Normalise sync and async exceptions into a Task
         Task setParametersAsyncTask;
         try
         {
+            if(logger.IsEnabled(LogLevel.Debug))
+            {
+                if(!_componentWasInitialized)
+                {
+                    Renderer.Log.InitializingAndSettingParametersComponent(logger, this);
+                }
+                else
+                {
+                    Renderer.Log.SettingParametersComponent(logger, this);
+                }
+            }
+
             setParametersAsyncTask = Component.SetParametersAsync(directAndCascadingParameters);
+
+            // If the method call succeded and no exception was thrown it can be assumed the component is initialized.
+            // this assumption could only be removed if the Initialized Property of ComponentBase made public and added to IComponent
+            _componentWasInitialized = true; 
         }
         catch (Exception ex)
         {
