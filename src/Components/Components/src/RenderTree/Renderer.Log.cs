@@ -61,6 +61,8 @@ public abstract partial class Renderer
             }
         }
 
+        // These events got added later
+
         [LoggerMessage(6, LogLevel.Debug, "Rendered component {ComponentId} of type {ComponentType}", EventName = "RenderingComponent", SkipEnabledCheck = true)]
         private static partial void RenderedComponent(ILogger logger, int componentId, Type componentType);
 
